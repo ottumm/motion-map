@@ -14,7 +14,7 @@
  *
  * The Original Code is mozilla.org code.
  *
- * The Initial Developer of the Original Code is 
+ * The Initial Developer of the Original Code is
  * Netscape Communications Corporation.
  * Portions created by the Initial Developer are Copyright (C) 1998
  * the Initial Developer. All Rights Reserved.
@@ -22,7 +22,7 @@
  * Contributor(s):
  *
  * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or 
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
  * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
  * in which case the provisions of the GPL or the LGPL are applicable instead
  * of those above. If you wish to allow use of your version of this file only
@@ -49,14 +49,14 @@
 
 class MyPipeline: public UtilPipeline {
 public:
-	MyPipeline(void):UtilPipeline(),m_render(L"Gesture Viewer") { 
+	MyPipeline(void):UtilPipeline(),m_render(L"Gesture Viewer") {
 		EnableGesture();
 	}
 	virtual void PXCAPI OnGesture(PXCGesture::Gesture *data) {
 		if ( data->active && data->label == PXCGesture::Gesture::LABEL_POSE_BIG5 )
 			std::cout << "Stop!" << std::endl;
 
-		if (data->active) m_gdata=(*data); 
+		if (data->active) m_gdata=(*data);
 	}
 	virtual bool OnNewFrame(void) {
 		MyOnNewFrame();
@@ -72,16 +72,25 @@ protected:
 PXCGesture::GeoNode QueryNode( pxcUID user, PXCGesture* detector, PXCGesture::GeoNode::Label label )
 {
 	PXCGesture::GeoNode result;
-    if (detector->QueryNodeData(user, 
+    if (detector->QueryNodeData(user,
 								PXCGesture::GeoNode::LABEL_BODY_HAND_RIGHT|label,
 								&result)<PXC_STATUS_NO_ERROR)
-		if (detector->QueryNodeData(user, 
+		if (detector->QueryNodeData(user,
 								   PXCGesture::GeoNode::LABEL_BODY_HAND_LEFT|label,
 								   &result)<PXC_STATUS_NO_ERROR)
 			return PXCGesture::GeoNode();
-	
+
 	return result;
 }
+
+struct EventData
+{
+  int fingerCount;
+  int positionX;
+  int positionY;
+};
+
+static HWND g_hWnd = 0;
 
 void MyPipeline::MyOnNewFrame()
 {
@@ -89,7 +98,7 @@ void MyPipeline::MyOnNewFrame()
     pxcUID user=0;
     pxcStatus sts= detector->QueryUser(0,&user);
     if (sts<PXC_STATUS_NO_ERROR) return;
-	
+
 	PXCGesture::GeoNode thumb = QueryNode( user, detector, PXCGesture::GeoNode::LABEL_FINGER_THUMB );
 	PXCGesture::GeoNode index = QueryNode( user, detector, PXCGesture::GeoNode::LABEL_FINGER_INDEX );
 	PXCGesture::GeoNode middle = QueryNode( user, detector, PXCGesture::GeoNode::LABEL_FINGER_MIDDLE );
@@ -104,14 +113,19 @@ void MyPipeline::MyOnNewFrame()
 
 	if ( fingerCount == 0 )
 		return;
-	
+
 	PXCPoint3DF32 positionImage = thumb.confidence ? thumb.positionImage
 								: index.confidence ? index.positionImage
 								: middle.confidence ? middle.positionImage
 								: ring.confidence ? ring.positionImage
 								: pinky.positionImage;
-	
-	std::cout << fingerCount << ": (" << positionImage.x << "," << positionImage.y << ")" << std::endl;
+
+  EventData* eventData = new EventData;
+  eventData->fingerCount = fingerCount;
+  eventData->positionX = positionImage.x;
+  eventData->positionY = positionImage.y;
+
+  PostMessage( g_hWnd, WM_USER, (WPARAM) eventData, 0 );
 }
 
 const char* kSayHello = "sayHello";
@@ -153,6 +167,9 @@ bool ScriptablePluginObject::InvokeDefault(NPObject* obj, const NPVariant* args,
   return true;
 }
 
+static NPObject* g_callback = 0;
+static NPP g_NPP;
+
 bool ScriptablePluginObject::Invoke(NPObject* obj, NPIdentifier methodName,
                      const NPVariant* args, uint32_t argCount,
                      NPVariant* result) {
@@ -177,11 +194,8 @@ bool ScriptablePluginObject::Invoke(NPObject* obj, NPIdentifier methodName,
 	  }
 	  NPString type = args[0].value.stringValue;
 	  std::string handler_name( type.UTF8Characters, type.UTF8Length );
-	  NPObject* callback = npnfuncs->retainobject( args[1].value.objectValue );
-
-	  m_callback = callback;
-	  theNPP = thisObj->npp;
-	  DoJavascriptCallback();
+	  g_callback = npnfuncs->retainobject( args[1].value.objectValue );
+	  g_NPP = thisObj->npp;
 	  //TODO: Add to map
   } else if ( strcmp(name, kAddEventHandler)==0 ) {
 	  if ( argCount != 2 || args[0].type != NPVariantType_String || args[1].type != NPVariantType_Object ) {
@@ -192,19 +206,11 @@ bool ScriptablePluginObject::Invoke(NPObject* obj, NPIdentifier methodName,
 
 	  //TODO: Remove from map
   } else {
-    // Exception handling. 
+    // Exception handling.
     npnfuncs->setexception(obj, "Unknown method");
   }
   npnfuncs->memfree(name);
   return ret_val;
-}
-
-void DoJavascriptCallback() {
-	NPVariant result;
-	NPVariant args[1];
-	args[0].type = NPVariantType_Int32;
-	args[0].value.intValue = 42;
-	npnfuncs->invokeDefault( theNPP, m_callback, args, 1, &result );
 }
 
 bool ScriptablePluginObject::HasProperty(NPObject* obj, NPIdentifier propertyName) {
@@ -237,7 +243,29 @@ CPlugin::~CPlugin() {
 void LoopFrames(void*)
 {
   MyPipeline pipeline;
-  if (!pipeline.LoopFrames()) wprintf_s(L"Failed to initialize or stream data"); 
+  if (!pipeline.LoopFrames()) wprintf_s(L"Failed to initialize or stream data");
+}
+
+WNDPROC oldWndProc = 0;
+
+LRESULT CALLBACK MyWinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+  if ( uMsg == WM_USER )
+  {
+    EventData* eventData = (EventData*) wParam;
+	NPVariant result;
+	NPVariant args[3];
+	args[0].type = NPVariantType_Int32;
+	args[0].value.intValue = eventData->fingerCount;
+	args[1].type = NPVariantType_Int32;
+	args[1].value.intValue = eventData->positionX;
+	args[2].type = NPVariantType_Int32;
+	args[2].value.intValue = eventData->positionY;
+	npnfuncs->invokeDefault( g_NPP, g_callback, args, 3, &result );
+    delete eventData;
+  }
+
+  return CallWindowProc( oldWndProc, hWnd, uMsg, wParam, lParam );
 }
 
 NPBool CPlugin::init(NPWindow* pNPWindow) {
@@ -245,11 +273,14 @@ NPBool CPlugin::init(NPWindow* pNPWindow) {
     return false;
 #ifdef _WINDOWS
   m_hWnd = (HWND)pNPWindow->window;
+  g_hWnd = m_hWnd;
   if(m_hWnd == NULL)
     return false;
 #endif
   m_Window = pNPWindow;
   m_bInitialized = true;
+
+  oldWndProc = (WNDPROC) SetWindowLong(m_hWnd, GWL_WNDPROC, (LONG)&MyWinProc);
 
   _beginthread( &LoopFrames, 0, 0 );
 
