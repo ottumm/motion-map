@@ -123,6 +123,16 @@ function currentYDirection(fingerCount, difference) {
     return (lastNDirectionsAre(up, yDirectionHistory) && fingerCount > 1 ? {d : up, confident : true} : {d : up, confident : false});
 }
 
+function logState(differenceX, differenceY, xDirection, yDirection) {
+  console.log("  differenceX: " + differenceX);
+  console.log("  differenceY: " + differenceY);
+  console.log("  xDirection:  " + dirToString(xDirection));
+  console.log("  yDirection:  " + dirToString(yDirection));
+
+  console.log("  xDirectionHistory: " + historyToString(xDirectionHistory));
+  console.log("  yDirectionHistory: " + historyToString(yDirectionHistory));
+}
+
 function updateMap(fingerCount, fingerX, fingerY, handX, handY) {
   console.log("updateMap(" + fingerCount + ", " + fingerX + ", " + fingerY + ", " + handX + ", " + handY + ")");
 
@@ -131,13 +141,7 @@ function updateMap(fingerCount, fingerX, fingerY, handX, handY) {
   var xDirection = currentXDirection(fingerCount, differenceX);
   var yDirection = currentYDirection(fingerCount, differenceY);
 
-  console.log("  differenceX: " + differenceX);
-  console.log("  differenceY: " + differenceY);
-  console.log("  xDirection:  " + dirToString(xDirection));
-  console.log("  yDirection:  " + dirToString(yDirection));
-
-  console.log("  xDirectionHistory: " + historyToString(xDirectionHistory));
-  console.log("  yDirectionHistory: " + historyToString(yDirectionHistory));
+  logState(differenceX, differenceY, xDirection, yDirection);
 
   panBy(xDirection != null && xDirection.confident ? differenceX : 0, yDirection != null && yDirection.confident ? -differenceY : 0);
 
