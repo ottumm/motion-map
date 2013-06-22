@@ -2,8 +2,8 @@
 <html>
 <head>
 <script>
-function doCallback( arg0 ) {
-  alert( arg0 );
+function doCallback( fingerCount, positionX, positionY ) {
+  console.log(fingerCount + " " + positionX + " " + positionY);
 }
 window.onload = function(){
     test = document.getElementById("pluginObj");
@@ -12,6 +12,6 @@ window.onload = function(){
 }
 </script>
 </head>
-<embed id="pluginObj" type="application/x-helloworld"> 
+<embed id="pluginObj" type="application/x-helloworld">
 <body></body>
 </html>
