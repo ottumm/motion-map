@@ -1,5 +1,6 @@
 var DIRECTION_HISTORY_NEEDED = 2;
 var MOVEMENT_LIMIT           = 1000;
+var SCALE_FACTOR             = 10;
 
 var map;
 
@@ -136,8 +137,8 @@ function logState(differenceX, differenceY, xDirection, yDirection) {
 function updateMap(fingerCount, fingerX, fingerY, handX, handY) {
   console.log("updateMap(" + fingerCount + ", " + fingerX + ", " + fingerY + ", " + handX + ", " + handY + ")");
 
-  var differenceX = fingerX - lastFingerX;
-  var differenceY = fingerY - lastFingerY;
+  var differenceX = (fingerX - lastFingerX) * SCALE_FACTOR;
+  var differenceY = (fingerY - lastFingerY) * SCALE_FACTOR;
   var xDirection = currentXDirection(fingerCount, differenceX);
   var yDirection = currentYDirection(fingerCount, differenceY);
 
