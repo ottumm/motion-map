@@ -1,0 +1,153 @@
+/*******************************************************************************
+
+INTEL CORPORATION PROPRIETARY INFORMATION
+This software is supplied under the terms of a license agreement or nondisclosure
+agreement with Intel Corporation and may not be copied or disclosed except in
+accordance with the terms of that agreement
+Copyright(c) 2012 Intel Corporation. All Rights Reserved.
+
+*******************************************************************************/
+#include "util_pipeline.h"
+#include "gesture_render.h"
+#include <iostream>
+
+class MyPipeline: public UtilPipeline {
+public:
+	MyPipeline(void):UtilPipeline(),m_render(L"Gesture Viewer") { 
+		EnableGesture();
+	}
+	virtual void PXCAPI OnGesture(PXCGesture::Gesture *data) {
+		if ( data->active && data->label == PXCGesture::Gesture::LABEL_POSE_BIG5 )
+			std::cout << "Stop!" << std::endl;
+
+		if (data->active) m_gdata=(*data); 
+	}
+	virtual bool OnNewFrame(void) {
+		MyOnNewFrame();
+		return m_render.RenderFrame(QueryImage(PXCImage::IMAGE_TYPE_DEPTH), QueryGesture(), &m_gdata);
+	}
+protected:
+	void MyOnNewFrame();
+
+	GestureRender		m_render;
+	PXCGesture::Gesture m_gdata;
+};
+
+DWORD lastOutput = 0;
+int lastX = 0;
+int lastY = 0;
+
+PXCGesture::GeoNode QueryNode( pxcUID user, PXCGesture* detector, PXCGesture::GeoNode::Label label )
+{
+	PXCGesture::GeoNode result;
+    if (detector->QueryNodeData(user, 
+								PXCGesture::GeoNode::LABEL_BODY_HAND_RIGHT|label,
+								&result)<PXC_STATUS_NO_ERROR)
+		if (detector->QueryNodeData(user, 
+								   PXCGesture::GeoNode::LABEL_BODY_HAND_LEFT|label,
+								   &result)<PXC_STATUS_NO_ERROR)
+			return PXCGesture::GeoNode();
+	
+	return result;
+}
+
+void Move( int differenceY )
+{
+	INPUT in;
+	in.type = INPUT_MOUSE;
+	in.mi.dx = 0;
+	in.mi.dy = 0;
+	in.mi.dwFlags = MOUSEEVENTF_WHEEL;
+	in.mi.time = 0;
+	in.mi.dwExtraInfo = 0;
+	in.mi.mouseData = WHEEL_DELTA * ( differenceY / 5 );
+	SendInput(1,&in,sizeof(in));
+}
+
+enum Direction { up, down };
+Direction lastDirection = down;
+Direction lastLastDirection = down;
+
+void MyPipeline::MyOnNewFrame()
+{
+	//if ( GetTickCount() - lastOutput < 10 )
+	//	return;
+
+	lastOutput = GetTickCount();
+	PXCGesture* detector = QueryGesture();
+    pxcUID user=0;
+    pxcStatus sts= detector->QueryUser(0,&user);
+    if (sts<PXC_STATUS_NO_ERROR) return;
+	
+	PXCGesture::GeoNode thumb = QueryNode( user, detector, PXCGesture::GeoNode::LABEL_FINGER_THUMB );
+	PXCGesture::GeoNode index = QueryNode( user, detector, PXCGesture::GeoNode::LABEL_FINGER_INDEX );
+	PXCGesture::GeoNode middle = QueryNode( user, detector, PXCGesture::GeoNode::LABEL_FINGER_MIDDLE );
+	PXCGesture::GeoNode ring = QueryNode( user, detector, PXCGesture::GeoNode::LABEL_FINGER_RING );
+	PXCGesture::GeoNode pinky = QueryNode( user, detector, PXCGesture::GeoNode::LABEL_FINGER_PINKY );
+
+	int fingerCount = ( thumb.confidence ? 1 : 0 )
+					+ ( index.confidence ? 1 : 0 )
+					+ ( middle.confidence ? 1 : 0 )
+					+ ( ring.confidence ? 1 : 0 )
+					+ ( pinky.confidence ? 1 : 0 );
+
+	if ( fingerCount == 0 )
+		return;
+	
+	//std::cout << fingerCount << std::endl;
+
+	PXCPoint3DF32 positionImage = thumb.confidence ? thumb.positionImage
+								: index.confidence ? index.positionImage
+								: middle.confidence ? middle.positionImage
+								: ring.confidence ? ring.positionImage
+								: pinky.positionImage;
+
+	std::cout << fingerCount << ": (" << positionImage.x << "," << positionImage.y << ")" << std::endl;
+
+	//int distanceX = indexFingertipNode.positionImage.x - handNode.positionImage.x;
+	//
+	int differenceX = lastX - positionImage.x;
+	int differenceY = lastY - positionImage.y;
+
+	lastX = positionImage.x;
+	lastY = positionImage.y;
+
+	//if ( abs(differenceX) > 10 )
+	//	std::cout << "scroll " << ( differenceX > 0 ? "left" : "right" ) << " " << abs(differenceX) << std::endl;
+	
+	//if ( abs( differenceY ) < 100 )
+	//{
+	//	if ( differenceY > 0 && fingerCount == 1 )
+	//	{
+	//		if ( lastDirection == down && lastLastDirection == down )
+	//		{
+	//			std::cout << "moving down " << differenceY << std::endl;
+	//			Move( -differenceY );
+	//		}
+
+	//		lastLastDirection = lastDirection;
+	//		lastDirection = down;
+	//	}
+
+	//	if ( differenceY < 0 && fingerCount > 1 )
+	//	{
+	//		std::cout << "moving up " << abs(differenceY) << std::endl;
+	//		Move( -differenceY );
+	//		lastLastDirection = lastDirection;
+	//		lastDirection = up;
+	//	}
+	//}
+
+	//if ( abs(differenceY) > 10 )
+	//{
+	//	std::cout << "scroll " << ( differenceY > 0 ? "down" : "up" ) << " " << abs(differenceY) << std::endl;
+	//}
+	//std::cout << "world: (" << data.positionWorld.x << "," << data.positionWorld.y << "," << data.positionWorld.z << ")";
+	//std::cout << "image: (" << data.positionImage.x << "," << data.positionImage.y << "," << data.positionImage.z << ")" << std::endl;
+}
+
+int wmain(int argc, WCHAR* argv[]) {
+	MyPipeline pipeline;
+	if (!pipeline.LoopFrames()) wprintf_s(L"Failed to initialize or stream data"); 
+    return 0;
+}
