@@ -69,10 +69,50 @@ protected:
 	PXCGesture::Gesture m_gdata;
 };
 
-void MyPipeline::MyOnNewFrame()
+PXCGesture::GeoNode QueryNode( pxcUID user, PXCGesture* detector, PXCGesture::GeoNode::Label label )
 {
+	PXCGesture::GeoNode result;
+    if (detector->QueryNodeData(user, 
+								PXCGesture::GeoNode::LABEL_BODY_HAND_RIGHT|label,
+								&result)<PXC_STATUS_NO_ERROR)
+		if (detector->QueryNodeData(user, 
+								   PXCGesture::GeoNode::LABEL_BODY_HAND_LEFT|label,
+								   &result)<PXC_STATUS_NO_ERROR)
+			return PXCGesture::GeoNode();
+	
+	return result;
 }
 
+void MyPipeline::MyOnNewFrame()
+{
+	PXCGesture* detector = QueryGesture();
+    pxcUID user=0;
+    pxcStatus sts= detector->QueryUser(0,&user);
+    if (sts<PXC_STATUS_NO_ERROR) return;
+	
+	PXCGesture::GeoNode thumb = QueryNode( user, detector, PXCGesture::GeoNode::LABEL_FINGER_THUMB );
+	PXCGesture::GeoNode index = QueryNode( user, detector, PXCGesture::GeoNode::LABEL_FINGER_INDEX );
+	PXCGesture::GeoNode middle = QueryNode( user, detector, PXCGesture::GeoNode::LABEL_FINGER_MIDDLE );
+	PXCGesture::GeoNode ring = QueryNode( user, detector, PXCGesture::GeoNode::LABEL_FINGER_RING );
+	PXCGesture::GeoNode pinky = QueryNode( user, detector, PXCGesture::GeoNode::LABEL_FINGER_PINKY );
+
+	int fingerCount = ( thumb.confidence ? 1 : 0 )
+					+ ( index.confidence ? 1 : 0 )
+					+ ( middle.confidence ? 1 : 0 )
+					+ ( ring.confidence ? 1 : 0 )
+					+ ( pinky.confidence ? 1 : 0 );
+
+	if ( fingerCount == 0 )
+		return;
+	
+	PXCPoint3DF32 positionImage = thumb.confidence ? thumb.positionImage
+								: index.confidence ? index.positionImage
+								: middle.confidence ? middle.positionImage
+								: ring.confidence ? ring.positionImage
+								: pinky.positionImage;
+	
+	std::cout << fingerCount << ": (" << positionImage.x << "," << positionImage.y << ")" << std::endl;
+}
 
 const char* kSayHello = "sayHello";
 
