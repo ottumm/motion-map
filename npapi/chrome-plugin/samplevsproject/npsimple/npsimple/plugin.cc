@@ -115,6 +115,8 @@ void MyPipeline::MyOnNewFrame()
 }
 
 const char* kSayHello = "sayHello";
+const char* kAddEventHandler = "addEventHandler";
+const char* kRemoveEventHandler = "removeEventHandler";
 
 static NPClass plugin_ref_obj = {
   NP_CLASS_STRUCT_VERSION,
@@ -169,12 +171,40 @@ bool ScriptablePluginObject::Invoke(NPObject* obj, NPIdentifier methodName,
       return false;
     strcpy(npOutString, outString);
     STRINGZ_TO_NPVARIANT(npOutString, *result);
+  } else if ( strcmp(name, kAddEventHandler)==0 ) {
+	  if ( argCount != 2 || args[0].type != NPVariantType_String || args[1].type != NPVariantType_Object ) {
+		  npnfuncs->setexception(obj, "Invalid parameters to addEventHandler method");
+	  }
+	  NPString type = args[0].value.stringValue;
+	  std::string handler_name( type.UTF8Characters, type.UTF8Length );
+	  NPObject* callback = npnfuncs->retainobject( args[1].value.objectValue );
+
+	  m_callback = callback;
+	  theNPP = thisObj->npp;
+	  DoJavascriptCallback();
+	  //TODO: Add to map
+  } else if ( strcmp(name, kAddEventHandler)==0 ) {
+	  if ( argCount != 2 || args[0].type != NPVariantType_String || args[1].type != NPVariantType_Object ) {
+		  npnfuncs->setexception(obj, "Invalid parameters to addEventHandler method");
+	  }
+	  NPString type = args[0].value.stringValue;
+	  std::string handler_name( type.UTF8Characters, type.UTF8Length );
+
+	  //TODO: Remove from map
   } else {
     // Exception handling. 
     npnfuncs->setexception(obj, "Unknown method");
   }
   npnfuncs->memfree(name);
   return ret_val;
+}
+
+void DoJavascriptCallback() {
+	NPVariant result;
+	NPVariant args[1];
+	args[0].type = NPVariantType_Int32;
+	args[0].value.intValue = 42;
+	npnfuncs->invokeDefault( theNPP, m_callback, args, 1, &result );
 }
 
 bool ScriptablePluginObject::HasProperty(NPObject* obj, NPIdentifier propertyName) {

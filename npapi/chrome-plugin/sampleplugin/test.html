@@ -2,9 +2,13 @@
 <html>
 <head>
 <script>
+function doCallback( arg0 ) {
+  alert( arg0 );
+}
 window.onload = function(){
     test = document.getElementById("pluginObj");
-    alert(test.sayHello());
+    //alert(test.sayHello());
+    test.addEventHandler( "testEvent", doCallback );
 }
 </script>
 </head>

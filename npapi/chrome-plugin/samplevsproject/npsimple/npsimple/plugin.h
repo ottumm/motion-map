@@ -44,6 +44,9 @@
 
 extern NPNetscapeFuncs* npnfuncs;
 
+static NPObject* m_callback = 0;
+static NPP theNPP;
+
 class ScriptablePluginObject: NPObject {
 public:
   ScriptablePluginObject(NPP instance);
@@ -61,6 +64,8 @@ public:
 
   NPP npp;
 };
+
+void DoJavascriptCallback();
 
 class CPlugin {
 private:
