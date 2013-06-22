@@ -41,9 +41,10 @@ function remaining(val, limit) {
 }
 
 function initialize() {
+  var sanfrancisco = new google.maps.LatLng(37.7577, -122.4376);
   var mapOptions = {
-    center: new google.maps.LatLng(-34.397, 150.644),
-    zoom: 8,
+    center: sanfrancisco,
+    zoom: 13,
     mapTypeId: google.maps.MapTypeId.ROADMAP
   };
   var map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
@@ -57,7 +58,7 @@ function initialize() {
   logEvent('idle');
 
   $(window).keypress(function(e) {
-    var dist = 800;
+    var dist = 200;
 
     /* w */ if(e.keyCode == 119 || e.keyCode == 87)      { panBy(map, e.keyCode, 0, -1 * dist); }
     /* a */ else if(e.keyCode == 97  || e.keyCode == 65) { panBy(map, e.keyCode, -1 * dist, 0); }
