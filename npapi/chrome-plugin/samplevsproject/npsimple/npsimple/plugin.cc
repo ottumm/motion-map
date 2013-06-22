@@ -88,6 +88,8 @@ struct EventData
   int fingerCount;
   int positionX;
   int positionY;
+  int handX;
+  int handY;
 };
 
 static HWND g_hWnd = 0;
@@ -120,12 +122,16 @@ void MyPipeline::MyOnNewFrame()
 								: ring.confidence ? ring.positionImage
 								: pinky.positionImage;
 
-  EventData* eventData = new EventData;
-  eventData->fingerCount = fingerCount;
-  eventData->positionX = positionImage.x;
-  eventData->positionY = positionImage.y;
+	PXCGesture::GeoNode hand = QueryNode( user, detector, 0 );
 
-  PostMessage( g_hWnd, WM_USER, (WPARAM) eventData, 0 );
+	EventData* eventData = new EventData;
+	eventData->fingerCount = fingerCount;
+	eventData->positionX = positionImage.x;
+	eventData->positionY = positionImage.y;
+	eventData->handX = hand.positionImage.x;
+	eventData->handY = hand.positionImage.y;
+
+	PostMessage( g_hWnd, WM_USER, (WPARAM) eventData, 0 );
 }
 
 const char* kSayHello = "sayHello";
@@ -255,14 +261,18 @@ LRESULT CALLBACK MyWinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
   {
     EventData* eventData = (EventData*) wParam;
 	NPVariant result;
-	NPVariant args[3];
+	NPVariant args[5];
 	args[0].type = NPVariantType_Int32;
 	args[0].value.intValue = eventData->fingerCount;
 	args[1].type = NPVariantType_Int32;
 	args[1].value.intValue = eventData->positionX;
 	args[2].type = NPVariantType_Int32;
 	args[2].value.intValue = eventData->positionY;
-	npnfuncs->invokeDefault( g_NPP, g_callback, args, 3, &result );
+	args[3].type = NPVariantType_Int32;
+	args[3].value.intValue = eventData->handX;
+	args[4].type = NPVariantType_Int32;
+	args[4].value.intValue = eventData->handY;
+	npnfuncs->invokeDefault( g_NPP, g_callback, args, 5, &result );
     delete eventData;
   }
 

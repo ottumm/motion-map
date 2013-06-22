@@ -168,13 +168,7 @@ function initialize() {
     /* M */ else if(e.keyCode == 77)                     { driveGestureEvents(); }
   });
 
-  function doCallback( fingerCount, positionX, positionY ) {
-    console.log(fingerCount + " " + positionX + " " + positionY);
-  }
-
-    var test = document.getElementById("pluginObj");
-    test.addEventHandler( "testEvent", doCallback );
-    $(test).css('display', 'none');
+  document.getElementById("pluginObj").addEventHandler( "testEvent", updateMap );
 }
 //google.maps.event.addDomListener(window, 'load', initialize);
 $(document).ready(initialize);
