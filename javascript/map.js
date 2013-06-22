@@ -1,5 +1,5 @@
 var DIRECTION_HISTORY_NEEDED = 2;
-var MOVEMENT_LIMIT           = 100;
+var MOVEMENT_LIMIT           = 1000;
 
 var map;
 
@@ -51,6 +51,17 @@ var down  = 2;
 var left  = 3;
 var right = 4;
 
+function dirToString(dir) {
+  switch(dir) {
+    case 1: return "up";
+    case 2: return "down";
+    case 3: return "left";
+    case 4: return "right";
+  }
+
+  return "null";
+}
+
 var lastFingerX = 0;
 var lastFingerY = 0;
 var lastHandX   = 0;
@@ -77,10 +88,10 @@ function pushDirection(dir, list) {
 
 function currentXDirection(fingerCount, difference) {
   if(Math.abs(difference) < MOVEMENT_LIMIT) {
-    if(difference > 0 && lastNDirectionsAre(down, xDirectionHistory))
-      return down;
-    else if(difference < 0 && lastNDirectionsAre(up, xDirectionHistory))
-      return up;
+    if(difference > 0 && lastNDirectionsAre(left, xDirectionHistory))
+      return left;
+    else if(difference < 0 && lastNDirectionsAre(right, xDirectionHistory))
+      return right;
   }
 
   return null;
@@ -100,12 +111,20 @@ function currentYDirection(fingerCount, difference) {
 function updateMap(fingerCount, fingerX, fingerY, handX, handY) {
   console.log("updateMap(" + fingerCount + ", " + fingerX + ", " + fingerY + ", " + handX + ", " + handY + ")");
   
-  var differenceX = lastFingerX - fingerX;
-  var differenceY = lastFingerY - fingerY;
+  var differenceX = fingerX - lastFingerX;
+  var differenceY = fingerY - lastFingerY;
   var xDirection = currentXDirection(fingerCount, differenceX);
   var yDirection = currentYDirection(fingerCount, differenceY);
 
-  panBy(xDirection != null ? -differenceX : 0, yDirection != null ? -differenceY : 0);
+  console.log("  differenceX: " + differenceX);
+  console.log("  differenceY: " + differenceY);
+  console.log("  xDirection:  " + dirToString(xDirection));
+  console.log("  yDirection:  " + dirToString(yDirection));
+
+  console.log("  xDirectionHistory.length: " + xDirectionHistory.length);
+  console.log("  yDirectionHistory.length: " + yDirectionHistory.length);
+
+  panBy(xDirection != null ? differenceX : 0, yDirection != null ? -differenceY : 0);
 
   pushDirection(xDirection, xDirectionHistory);
   pushDirection(yDirection, yDirectionHistory);
@@ -164,8 +183,8 @@ function driveGestureEvents() {
     {c : 1, fx : 80,  fy : 80},
     {c : 1, fx : 100, fy : 100},
     {c : 1, fx : 120, fy : 120},
-    {c : 1, fx : 120, fy : 300},
-    {c : 1, fx : 120, fy : 500}
+    {c : 1, fx : 300, fy : 300},
+    {c : 1, fx : 500, fy : 500}
   ];
 
   for(var i=0; i<pos.length; i++) {
@@ -176,4 +195,10 @@ function driveGestureEvents() {
       }, 1000);
     })();
   }
+
+  // for(var i=0; i<30*1000; i++) {
+  //   (function() {
+  //     var 
+  //   })();
+  // }
 }
