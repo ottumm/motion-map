@@ -80,10 +80,10 @@ function historyToString(list) {
   return newList.join(", ");
 }
 
-var lastFingerX = 0;
-var lastFingerY = 0;
-var lastHandX   = 0;
-var lastHandY   = 0;
+var lastFingerX = null;
+var lastFingerY = null;
+var lastHandX   = null;
+var lastHandY   = null;
 
 function lastNDirectionsAre(dir, list) {
   for(var i=list.length - 1; i>=0; i--) {
@@ -137,17 +137,19 @@ function logState(differenceX, differenceY, xDirection, yDirection) {
 function updateMap(fingerCount, fingerX, fingerY, handX, handY) {
   console.log("updateMap(" + fingerCount + ", " + fingerX + ", " + fingerY + ", " + handX + ", " + handY + ")");
 
-  var differenceX = (fingerX - lastFingerX) * SCALE_FACTOR;
-  var differenceY = (fingerY - lastFingerY) * SCALE_FACTOR;
-  var xDirection = currentXDirection(fingerCount, differenceX);
-  var yDirection = currentYDirection(fingerCount, differenceY);
+  if(lastFingerX !== null) {
+    var differenceX = (fingerX - lastFingerX) * SCALE_FACTOR;
+    var differenceY = (fingerY - lastFingerY) * SCALE_FACTOR;
+    var xDirection = currentXDirection(fingerCount, differenceX);
+    var yDirection = currentYDirection(fingerCount, differenceY);
 
-  logState(differenceX, differenceY, xDirection, yDirection);
+    logState(differenceX, differenceY, xDirection, yDirection);
 
-  panBy(xDirection != null && xDirection.confident ? differenceX : 0, yDirection != null && yDirection.confident ? -differenceY : 0);
+    panBy(xDirection != null && xDirection.confident ? differenceX : 0, yDirection != null && yDirection.confident ? -differenceY : 0);
 
-  pushDirection(xDirection, xDirectionHistory);
-  pushDirection(yDirection, yDirectionHistory);
+    pushDirection(xDirection, xDirectionHistory);
+    pushDirection(yDirection, yDirectionHistory);
+  }
 
   lastFingerX = fingerX;
   lastFingerY = fingerY;
