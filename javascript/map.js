@@ -104,24 +104,21 @@ function pushDirection(dir, list) {
   list.push(dir);
 }
 
-function currentXDirection(fingerCount, difference) {
-  if(Math.abs(difference) > MOVEMENT_LIMIT || difference == 0)
-    return null;
+function currentDirection(fingerCount, difference, directions, history) {
+  if(Math.abs(difference) < MOVEMENT_LIMIT)
+  {
+    if(difference > 0 && fingerCount == 1) {
+      return (lastNDirectionsAre(directions[0], history) 
+        ? {d : directions[0], confident : true} 
+        : {d : directions[0], confident : false});
+    } else if(difference < 0 && fingerCount > 1) {
+      return (lastNDirectionsAre(directions[1], history) 
+        ? {d : directions[1], confident : true} 
+        : {d : directions[1], confident : false});
+    }
+  }
 
-  if(difference > 0)
-    return (lastNDirectionsAre(left, xDirectionHistory) ? {d : left, confident : true} : {d : left, confident : false});
-  else
-    return (lastNDirectionsAre(right, xDirectionHistory) ? {d : right, confident : true} : {d : right, confident : false});
-}
-
-function currentYDirection(fingerCount, difference) {
-  if(Math.abs(difference) > MOVEMENT_LIMIT || difference == 0)
-    return null;
-
-  if(difference > 0)
-    return (lastNDirectionsAre(down, yDirectionHistory) && fingerCount == 1 ? {d : down, confident : true} : {d : down, confident : false});
-  else
-    return (lastNDirectionsAre(up, yDirectionHistory) && fingerCount > 1 ? {d : up, confident : true} : {d : up, confident : false});
+  return null;
 }
 
 function logState(differenceX, differenceY, xDirection, yDirection) {
@@ -140,8 +137,8 @@ function updateMap(fingerCount, fingerX, fingerY, handX, handY) {
   if(lastFingerX !== null) {
     var differenceX = (fingerX - lastFingerX) * SCALE_FACTOR;
     var differenceY = (fingerY - lastFingerY) * SCALE_FACTOR;
-    var xDirection = currentXDirection(fingerCount, differenceX);
-    var yDirection = currentYDirection(fingerCount, differenceY);
+    var xDirection = currentDirection(fingerCount, differenceX, [left, right], xDirectionHistory);
+    var yDirection = currentDirection(fingerCount, differenceY, [down, up], yDirectionHistory);
 
     logState(differenceX, differenceY, xDirection, yDirection);
 
