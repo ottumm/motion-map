@@ -52,14 +52,31 @@ var left  = 3;
 var right = 4;
 
 function dirToString(dir) {
-  switch(dir) {
-    case 1: return "up";
-    case 2: return "down";
-    case 3: return "left";
-    case 4: return "right";
+  if(dir === null)
+    return null;
+
+  var s;
+
+  if(dir.d == up)    s = "up";
+  if(dir.d == down)  s = "down";
+  if(dir.d == left)  s = "left";
+  if(dir.d == right) s = "right";
+
+  if(dir.confident)
+    s += " (confident)";
+  else
+    s += " (unsure)";
+
+  return s;
+}
+
+function historyToString(list) {
+  var newList = [];
+  for(var i=0; i<list.length; i++) {
+    newList.push(dirToString(list[i]));
   }
 
-  return "null";
+  return newList.join(", ");
 }
 
 var lastFingerX = 0;
@@ -69,7 +86,7 @@ var lastHandY   = 0;
 
 function lastNDirectionsAre(dir, list) {
   for(var i=list.length - 1; i>=0; i--) {
-    if(list[i] != dir)
+    if(list[i].d != dir)
       return false;
   }
 
@@ -81,31 +98,29 @@ function pushDirection(dir, list) {
     return;
 
   if(list.length > DIRECTION_HISTORY_NEEDED - 1)
-    list.splice(1);
+    list.splice(0, 1);
 
   list.push(dir);
 }
 
 function currentXDirection(fingerCount, difference) {
-  if(Math.abs(difference) < MOVEMENT_LIMIT) {
-    if(difference > 0 && lastNDirectionsAre(left, xDirectionHistory))
-      return left;
-    else if(difference < 0 && lastNDirectionsAre(right, xDirectionHistory))
-      return right;
-  }
+  if(Math.abs(difference) > MOVEMENT_LIMIT || difference == 0)
+    return null;
 
-  return null;
+  if(difference > 0)
+    return (lastNDirectionsAre(left, xDirectionHistory) ? {d : left, confident : true} : {d : left, confident : false});
+  else
+    return (lastNDirectionsAre(right, xDirectionHistory) ? {d : right, confident : true} : {d : right, confident : false});
 }
 
 function currentYDirection(fingerCount, difference) {
-  if(Math.abs(difference) < MOVEMENT_LIMIT) {
-    if(difference > 0 && fingerCount == 1 && lastNDirectionsAre(down, yDirectionHistory))
-      return down;
-    else if(difference < 0 && fingerCount > 1 && lastNDirectionsAre(up, yDirectionHistory))
-      return up;
-  }
+  if(Math.abs(difference) > MOVEMENT_LIMIT || difference == 0)
+    return null;
 
-  return null;
+  if(difference > 0)
+    return (lastNDirectionsAre(down, yDirectionHistory) && fingerCount == 1 ? {d : down, confident : true} : {d : down, confident : false});
+  else
+    return (lastNDirectionsAre(up, yDirectionHistory) && fingerCount > 1 ? {d : up, confident : true} : {d : up, confident : false});
 }
 
 function updateMap(fingerCount, fingerX, fingerY, handX, handY) {
@@ -121,10 +136,10 @@ function updateMap(fingerCount, fingerX, fingerY, handX, handY) {
   console.log("  xDirection:  " + dirToString(xDirection));
   console.log("  yDirection:  " + dirToString(yDirection));
 
-  console.log("  xDirectionHistory.length: " + xDirectionHistory.length);
-  console.log("  yDirectionHistory.length: " + yDirectionHistory.length);
+  console.log("  xDirectionHistory: " + historyToString(xDirectionHistory));
+  console.log("  yDirectionHistory: " + historyToString(yDirectionHistory));
 
-  panBy(xDirection != null ? differenceX : 0, yDirection != null ? -differenceY : 0);
+  panBy(xDirection != null && xDirection.confident ? differenceX : 0, yDirection != null && yDirection.confident ? -differenceY : 0);
 
   pushDirection(xDirection, xDirectionHistory);
   pushDirection(yDirection, yDirectionHistory);
@@ -168,7 +183,7 @@ function initialize() {
     /* M */ else if(e.keyCode == 77)                     { driveGestureEvents(); }
   });
 
-  document.getElementById("pluginObj").addEventHandler( "testEvent", updateMap );
+  document.getElementById("pluginObj").addEventHandler("testEvent", updateMap);
 }
 //google.maps.event.addDomListener(window, 'load', initialize);
 $(document).ready(initialize);
@@ -198,20 +213,49 @@ function driveGestureEvents() {
   //   })();
   // }
 
+  // updateMap(1, 0, 0);
+  // updateMap(1, 40, 40);
+  // updateMap(1, 200, 200);
+  
+  // updateMap(2, 150, 150);
+  // updateMap(2, 100, 100);
+  // updateMap(2, 50, 50);
+  // updateMap(2, 20, 20);
+  // updateMap(2, 20, 20);
+  // updateMap(2, 20, 20);
+
+  // updateMap(1, 40, 40);
+  // updateMap(1, 80, 80);
+  // updateMap(1, 100, 100);
+  // updateMap(1, 200, 200);
+
+  // return;
+
   var i=0;
   var fx = 0;
   var fy = 0;
+  var fingercount = 1;
+  var direction = 1;
 
   var func = function() {
-    updateMap(1, fx, fy, fx, fy);
-    i++;
-    fx = fx + 40;
-    fy = fy + 40;
+    updateMap(fingercount, fx, fy, fx, fy);
+
+    if(fx > 500) {
+      direction = -1;
+      fingercount = 2;
+    }
+    else if (fx < 0) {
+      direction = 1;
+      fingercount = 1;
+    }
+
+    fx = fx + (40 * direction);
+    fy = fy + (40 * direction);
 
     var ms = 60;
 
-    if(i < 500 / ms)
-     setTimeout(func, ms);
+    if(i++ < 10000 / ms)
+      setTimeout(func, ms);
   }
 
   func();
