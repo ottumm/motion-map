@@ -196,6 +196,7 @@ bool ScriptablePluginObject::Invoke(NPObject* obj, NPIdentifier methodName,
 	  std::string handler_name( type.UTF8Characters, type.UTF8Length );
 	  g_callback = npnfuncs->retainobject( args[1].value.objectValue );
 	  g_NPP = thisObj->npp;
+	  ret_val = true;
 	  //TODO: Add to map
   } else if ( strcmp(name, kAddEventHandler)==0 ) {
 	  if ( argCount != 2 || args[0].type != NPVariantType_String || args[1].type != NPVariantType_Object ) {

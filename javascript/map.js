@@ -15,7 +15,7 @@ function panBy(x, y) {
   var remY = remaining(y, $(document).height());
   x = x - remX;
   y = y - remY;
-  
+
   console.log("  x     : " + x);
   console.log("  remX  : " + remX);
   console.log("  y     : " + y);
@@ -110,7 +110,7 @@ function currentYDirection(fingerCount, difference) {
 
 function updateMap(fingerCount, fingerX, fingerY, handX, handY) {
   console.log("updateMap(" + fingerCount + ", " + fingerX + ", " + fingerY + ", " + handX + ", " + handY + ")");
-  
+
   var differenceX = fingerX - lastFingerX;
   var differenceY = fingerY - lastFingerY;
   var xDirection = currentXDirection(fingerCount, differenceX);
@@ -160,16 +160,24 @@ function initialize() {
     /* s */ else if(e.keyCode == 115 || e.keyCode == 83) { panBy(0, dist); }
     /* d */ else if(e.keyCode == 100 || e.keyCode == 68) { panBy(dist, 0); }
     /* q */ else if(e.keyCode == 113 || e.keyCode == 81) { panBy(-1 * dist, -1 * dist); }
-    
+
 
     /* z */ else if(e.keyCode == 122)                    { map.setZoom(map.getZoom() + 1); }
     /* x */ else if(e.keyCode == 120)                    { map.setZoom(map.getZoom() - 1); }
 
     /* M */ else if(e.keyCode == 77)                     { driveGestureEvents(); }
   });
-}
-google.maps.event.addDomListener(window, 'load', initialize);
 
+  function doCallback( fingerCount, positionX, positionY ) {
+    console.log(fingerCount + " " + positionX + " " + positionY);
+  }
+
+    var test = document.getElementById("pluginObj");
+    test.addEventHandler( "testEvent", doCallback );
+    $(test).css('display', 'none');
+}
+//google.maps.event.addDomListener(window, 'load', initialize);
+$(document).ready(initialize);
 
 function driveGestureEvents() {
   console.log("starting gesture simulator");
@@ -198,7 +206,7 @@ function driveGestureEvents() {
 
   // for(var i=0; i<30*1000; i++) {
   //   (function() {
-  //     var 
+  //     var
   //   })();
   // }
 }
