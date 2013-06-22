@@ -44,6 +44,9 @@
     <ClCompile Include="np_entry.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PCSDK\gesture_render.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="npsimple.def">

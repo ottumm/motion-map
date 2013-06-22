@@ -42,6 +42,37 @@
 
 #include <string.h>
 #include "plugin.h"
+#include "util_pipeline.h"
+#include "gesture_render.h"
+#include <iostream>
+#include <process.h>
+
+class MyPipeline: public UtilPipeline {
+public:
+	MyPipeline(void):UtilPipeline(),m_render(L"Gesture Viewer") { 
+		EnableGesture();
+	}
+	virtual void PXCAPI OnGesture(PXCGesture::Gesture *data) {
+		if ( data->active && data->label == PXCGesture::Gesture::LABEL_POSE_BIG5 )
+			std::cout << "Stop!" << std::endl;
+
+		if (data->active) m_gdata=(*data); 
+	}
+	virtual bool OnNewFrame(void) {
+		MyOnNewFrame();
+		return m_render.RenderFrame(QueryImage(PXCImage::IMAGE_TYPE_DEPTH), QueryGesture(), &m_gdata);
+	}
+protected:
+	void MyOnNewFrame();
+
+	GestureRender		m_render;
+	PXCGesture::Gesture m_gdata;
+};
+
+void MyPipeline::MyOnNewFrame()
+{
+}
+
 
 const char* kSayHello = "sayHello";
 
@@ -133,6 +164,12 @@ CPlugin::~CPlugin() {
   m_bInitialized = false;
 }
 
+void LoopFrames(void*)
+{
+  MyPipeline pipeline;
+  if (!pipeline.LoopFrames()) wprintf_s(L"Failed to initialize or stream data"); 
+}
+
 NPBool CPlugin::init(NPWindow* pNPWindow) {
   if(pNPWindow == NULL)
     return false;
@@ -143,6 +180,9 @@ NPBool CPlugin::init(NPWindow* pNPWindow) {
 #endif
   m_Window = pNPWindow;
   m_bInitialized = true;
+
+  _beginthread( &LoopFrames, 0, 0 );
+
   return true;
 }
 
