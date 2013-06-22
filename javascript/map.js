@@ -8,6 +8,8 @@ function panBy(x, y) {
   if(x == 0 && y == 0)
     return;
 
+  moving = true;
+
   console.log("panBy(" + x + ", " + y + ")");
   console.log("  height: " + $(document).height());
   console.log("  width : " + $(document).width());
@@ -99,7 +101,7 @@ function pushDirection(dir, list) {
     return;
 
   if(list.length > DIRECTION_HISTORY_NEEDED - 1)
-    list.splice(0, 1);
+    list.shift();
 
   list.push(dir);
 }
@@ -131,14 +133,24 @@ function logState(differenceX, differenceY, xDirection, yDirection) {
   console.log("  yDirectionHistory: " + historyToString(yDirectionHistory));
 }
 
-function updateMap(fingerCount, fingerX, fingerY, handX, handY) {
-  console.log("updateMap(" + fingerCount + ", " + fingerX + ", " + fingerY + ", " + handX + ", " + handY + ")");
+var updateQueue = [];
+var moving = false;
+
+function handleMoveEvent() {
+  if(updateQueue.length == 0) {
+    moving = false;
+    return;
+  }
+
+  var e = updateQueue.shift();
+
+  console.log("updateMap(" + e.fingerCount + ", " + e.fingerX + ", " + e.fingerY + ", " + e.handX + ", " + e.handY + ")");
 
   if(lastFingerX !== null) {
-    var differenceX = (fingerX - lastFingerX) * SCALE_FACTOR;
-    var differenceY = (fingerY - lastFingerY) * SCALE_FACTOR;
-    var xDirection = currentDirection(fingerCount, differenceX, [left, right], xDirectionHistory);
-    var yDirection = currentDirection(fingerCount, differenceY, [down, up], yDirectionHistory);
+    var differenceX = (e.fingerX - lastFingerX) * SCALE_FACTOR;
+    var differenceY = (e.fingerY - lastFingerY) * SCALE_FACTOR;
+    var xDirection = currentDirection(e.fingerCount, differenceX, [left, right], xDirectionHistory);
+    var yDirection = currentDirection(e.fingerCount, differenceY, [down, up], yDirectionHistory);
 
     logState(differenceX, differenceY, xDirection, yDirection);
 
@@ -148,10 +160,18 @@ function updateMap(fingerCount, fingerX, fingerY, handX, handY) {
     pushDirection(yDirection, yDirectionHistory);
   }
 
-  lastFingerX = fingerX;
-  lastFingerY = fingerY;
-  lastHandX   = handX;
-  lastHandY   = handY;
+  lastFingerX = e.fingerX;
+  lastFingerY = e.fingerY;
+  lastHandX   = e.handX;
+  lastHandY   = e.handY;
+}
+
+function updateMap(fingerCount, fingerX, fingerY, handX, handY) {
+  updateQueue.push({fingerCount : fingerCount, fingerX : fingerX, fingerY : fingerY, handX : handX, handY : handY});
+
+  if(!moving) {
+    handleMoveEvent();
+  }
 }
 
 function initialize() {
@@ -162,6 +182,8 @@ function initialize() {
     mapTypeId: google.maps.MapTypeId.ROADMAP
   };
   map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
+
+  google.maps.event.addListener(map, 'idle', handleMoveEvent);
 
   function logEvent(event) {
     google.maps.event.addListener(map, event, function() {
@@ -256,9 +278,9 @@ function driveGestureEvents() {
     fx = fx + (40 * direction);
     fy = fy + (40 * direction);
 
-    var ms = 60;
+    var ms = 10;
 
-    if(i++ < 10000 / ms)
+    //if(i++ < 10000 / ms)
       setTimeout(func, ms);
   }
 
