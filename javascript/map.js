@@ -187,18 +187,30 @@ function driveGestureEvents() {
     {c : 1, fx : 500, fy : 500}
   ];
 
-  for(var i=0; i<pos.length; i++) {
-    (function() {
-      var el = pos[i];
-      setTimeout(function() {
-        updateMap(el.c, el.fx, el.fy, el.fx, el.fy);
-      }, 1000);
-    })();
-  }
-
-  // for(var i=0; i<30*1000; i++) {
+  // for(var i=0; i<pos.length; i++) {
   //   (function() {
-  //     var 
+  //     var el = pos[i];
+  //     setTimeout(function() {
+  //       updateMap(el.c, el.fx, el.fy, el.fx, el.fy);
+  //     }, 1000);
   //   })();
   // }
+
+  var i=0;
+  var fx = 0;
+  var fy = 0;
+
+  var func = function() {
+    updateMap(1, fx, fy, fx, fy);
+    i++;
+    fx = fx + 40;
+    fy = fy + 40;
+
+    var ms = 60;
+
+    if(i < 500 / ms)
+     setTimeout(func, ms);
+  }
+
+  func();
 }
