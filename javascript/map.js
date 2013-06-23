@@ -1,14 +1,13 @@
 var DIRECTION_HISTORY_NEEDED = 2;
 var MOVEMENT_LIMIT           = 1000;
 var SCALE_FACTOR             = 10;
+var MAX_QUEUE_LENGTH         = 1;
 
 var map;
 
 function panBy(x, y) {
   if(x == 0 && y == 0)
     return;
-
-  moving = true;
 
   console.log("panBy(" + x + ", " + y + ")");
   console.log("  height: " + $(document).height());
@@ -134,11 +133,10 @@ function logState(differenceX, differenceY, xDirection, yDirection) {
 }
 
 var updateQueue = [];
-var moving = false;
 
 function handleMoveEvent() {
   if(updateQueue.length == 0) {
-    moving = false;
+    setTimeout( handleMoveEvent, 30 );
     return;
   }
 
@@ -164,14 +162,15 @@ function handleMoveEvent() {
   lastFingerY = e.fingerY;
   lastHandX   = e.handX;
   lastHandY   = e.handY;
+
+  setTimeout( handleMoveEvent, 30 );
 }
 
 function updateMap(fingerCount, fingerX, fingerY, handX, handY) {
-  updateQueue.push({fingerCount : fingerCount, fingerX : fingerX, fingerY : fingerY, handX : handX, handY : handY});
-
-  if(!moving) {
-    handleMoveEvent();
+  if ( updateQueue.length > MAX_QUEUE_LENGTH ) {
+    updateQueue.shift();
   }
+  updateQueue.push({fingerCount : fingerCount, fingerX : fingerX, fingerY : fingerY, handX : handX, handY : handY});
 }
 
 function initialize() {
@@ -183,15 +182,14 @@ function initialize() {
   };
   map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
 
-  google.maps.event.addListener(map, 'idle', handleMoveEvent);
+  //google.maps.event.addListener(map, 'idle', handleMoveEvent);
+  handleMoveEvent();
 
   function logEvent(event) {
     google.maps.event.addListener(map, event, function() {
       console.log(event);
     });
   }
-
-  logEvent('idle');
 
   $(window).keypress(function(e) {
     var dist = 200;
